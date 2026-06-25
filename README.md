@@ -53,11 +53,16 @@ Source job description dataset: [Kaggle](https://www.kaggle.com/datasets/kshitiz
 
 ![chatbot_structure](https://github.com/Gaurravvvv/Resume-Screening-RAG-Pipeline/assets/46376260/dc97c06c-ca5d-4882-8e78-9101d528ee75)
 
-The deployed chatbot utilizes certain techniques to be more suitable for real-world use cases:
+The deployed chatbot utilizes certain advanced RAG techniques to be robust, efficient, and suitable for real-world recruitment workflows:
 
-- Chat history access: The LLM is fed with the entire conversation and the (latest) retrieved documents for every message, allowing it to perform follow-up tasks. 
-- Query classification: Utilizing function-calling and an adaptive approach, the LLM extracts the necessary information to decide whether to toggle the retrieval process on/off. In other words, the system only performs document retrieval when a suitable input query is provided; otherwise, it will only utilize the chat history to answer.
-- Small-to-Big retrieval: The retrieval process is performed using text chunks for efficiency. The retrieved chunks are then traced back to their original full-text documents to augment the LLM generator, allowing the generator to receive the complete context of the resumes. 
+- **Conversational Memory**: The chatbot parses and filters the conversation log history, passing the last 10 dialogs directly to the generator. This allows hiring managers to ask follow-up questions, summarize specific candidates, or request formatting modifications based on the retrieved context.
+- **Adaptive Query Routing**: Using native OpenAI tool calling (`bind_tools`), the classifier determines user intent on each prompt:
+  - **Job Description**: Routes to RAG/RAG Fusion search to retrieve similar resumes.
+  - **Applicant IDs**: Falls back to direct resume retrieval from the pandas database for specific candidate lookups, skipping semantic vector store search.
+  - **General Chat**: Bypasses document retrieval and directly streams the classifier's text response, avoiding secondary LLM calls.
+- **Robust RAG Fusion & De-duplication**: When RAG Fusion is active, 3-4 subquestions are generated and queried against the FAISS store (searching `k=20` chunks). Results are de-duplicated (keeping the best matching distance score per candidate) and combined using **Reciprocal Rank Fusion (RRF)**.
+- **Small-to-Big Retrieval**: Semantic searches are performed over smaller text chunks (chunk size `1024`, overlap `500`) for retrieval efficiency. The pipeline then maps retrieved chunks back to their parent Candidate IDs and feeds the **full text** of the top 5 resumes to the generator, ensuring no context is lost.
+- **LangChain 0.3 Compatibility**: Refactored to eliminate legacy agent components (like `format_tool_to_openai_function` and `OpenAIFunctionsAgentOutputParser`) in favor of modern runnable chains and native tool binding, supporting newer library updates out-of-the-box.
 
 **Tech stacks:** 
 - `langchain`, `openai`, `huggingface`: RAG pipeline and chatbot construction.
@@ -72,19 +77,45 @@ The pipeline begins by processing resumes into a vector storage. Upon receiving 
 
 ## Installation and Setup
 
-To set up the project locally:
-```
-# Clone the project
-git clone https://github.com/Gaurravvvv/Resume-Screening-RAG-Pipeline.git
+### Method 1: Automatic Quick Start (Windows)
+If you are on Windows, simply double-click the **[run_app.bat](file:///c:/Users/VICTUS/OneDrive/Desktop/Internship/Personal/Resume-Screening-RAG-Pipeline/run_app.bat)** script in the root directory. 
 
-# Install dependencies
-pip install requirements.txt
-```
+The script will automatically:
+1. Verify if required Python modules are missing.
+2. Install any missing packages without version conflicts.
+3. Start the Streamlit application and automatically open it in your default web browser.
 
-To run the Streamlit demo locally:
-```
-streamlit run demo/interface.py
-```
+---
+
+### Method 2: Manual Setup (Windows / macOS / Linux)
+
+1. **Clone the project**:
+   ```bash
+   git clone https://github.com/Gaurravvvv/Resume-Screening-RAG-Pipeline.git
+   cd Resume-Screening-RAG-Pipeline
+   ```
+
+2. **Configure environment variables**:
+   Create a `.env` file in the root directory (or edit the template) and add your OpenAI API Key:
+   ```env
+   # Path configurations
+   DATA_PATH = "./data/supplementary-data/pdf-resumes.csv"
+   FAISS_PATH = "./vectorstore-pdf"
+   EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+
+   # OpenAI API Key (Auto-loads on Streamlit startup)
+   OPENAI_API_KEY = "your-openai-api-key-here"
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Run the Streamlit demo**:
+   ```bash
+   python -m streamlit run demo/interface.py
+   ```
 
 ## Contributions
 
