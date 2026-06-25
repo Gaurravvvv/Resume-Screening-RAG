@@ -1,0 +1,26 @@
+# Environment files
+.env
+
+# Python caches and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Vector database storage directories
+vectorstore/
+vectorstore-pdf/
+vectorstore-synthetic/
+
+# IDE configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
